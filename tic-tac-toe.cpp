@@ -3,25 +3,42 @@
 using namespace std;
 
 /*
-1. inside gameplay
-	- Game over/Decide the outcome of the game
-	- Point of state
-	- Best move
-	- Which player is playing
-	- Which player is user
-2. user interface
-	- Show state
-	
-1.Ai engine
-	- state: vector<vector<int>> (SIZExSIZE)
-		+ SIZE (=3)
-		+ new typedef
-		+ array of characters to convert in rendering
-	- decide outcome of the game
-		+ game over or not
-	- is the move valid 
-	- calculate best move
-		+ calculate state score
+A. AI engine
+	- State representation: vector<vector<int>> (3x3)
+		+ X is 1, O is -1, blank is 0
+	- Check if the state is ended:
+		+ Input: state
+		+ Output: True/False
+		+ Check if row, column, diagonal have 3 X/O together. if yes, return True
+		+ Check if the whole board is filledd. if yes, return True
+		+ If not return False
+	- Check valid moves (with player as input):
+		+ Input: player's new move
+		+ Output: True/False
+		+ Check current players:
+			+ X always plays first
+			+ If the number X on the chessboard > the number O on the chessboard --> turn O
+			+ If number X on the chessboard = number of O on the chessboard --> turn X
+		+ If current player == human player, continue
+		+ Check if the move is valid (whether filled in the box already filled in), if not then alert and let human make another move
+	- calculate state score
+		+ Input: state + current player
+		+ Output: state score (int)
+		+ Check current players
+		+ Score of the final state:
+			+ 1 if X wins, 0 if draw, -1 if O wins
+		+ Score of non-final state
+			+ Consider the scores of the states after making the next move. The score of the current state will be the highest/lowest score of the next states. (minimax algorithm)
+			+ Algorithm for taking all next chess positions
+			+ Score all states taken from aforementioned algorithm
+			+ Find out which position has the lowest score (with O) or the highest score (with X).
+	- Find the best move:
+		+ Input: state + current player
+		+ Output: best next position
+		+ Algorithm for taking all next chess positions
+		+ Calculate the score of the next chess positions
+		+ Take the position with the highest/lowest score depending on X/O
+
 2.User interface
  	- asking x or o
  	- input move cordinate start from 0
@@ -38,19 +55,18 @@ char characters[] = "-XO";
 typedef vector<vector<int> > State;
 const int SIZE = 3;
 
-//1. inside gameplay
+//1. AI engine
 //Game over/Decide the outcome of the game
 
-/*Decide if game is over or not
-	over fuction: over : 
-	a. three in a row/col/diagonal
-		3X: sum of row/col/diagonal = 3
-		3O: sum of row/col/diagonal = -3
-		--> |sum of row/col/diagonal| = 3 means over
-	b. fullboard:
-		no blank in board = no 0 in State
+/*
+	- Check if the state is ended:
+		+ Input: state
+		+ Output: True/False
+		+ Check if row, column, diagonal have 3 X/O together. if yes, return True
+		+ Check if the whole board is filledd. if yes, return True
+		+ If not return False
 */
-bool over(State s){
+bool isFinalState(State s){
 	//three in a row/col/diagonal
 	for(int i = 0; i < SIZE; i++){
 		if(abs(s[0][i] + s[1][i] + s[2][i]) == 3) return true; //check row
@@ -58,8 +74,30 @@ bool over(State s){
 	}
 	if(abs(s[0][0] + s[1][1] + s[2][2]) == 3) return true;
 	if(abs(s[2][0] + s[1][1] + s[0][2]) == 3) return true; //check diagonals
+	// check full
+   	for (int i = 0; i < SIZE; i++){
+   		for(int j = 0; j < SIZE; j++){
+   			if(s[i][j] == 0) return false;	
+		}	
+	}
 }
 
+/*
+	- Check valid moves (with player as input):
+		+ Input: player's new move
+		+ Output: True/False
+		+ Check current players
+		+ If current player == human player, continue
+		+ Check if the move is valid (whether filled in the box already filled in), if not then alert and let human make another move
+*/
+
+/*
+
+	+ Check current players:
+		+ X always plays first
+		+ If the number X on the chessboard > the number O on the chessboard --> turn O
+		+ If number X on the chessboard = number of O on the chessboard --> turn X
+*/
 int getNextPlayer(State s)
 {
     int countX = 0, countO = 0;
@@ -70,6 +108,16 @@ int getNextPlayer(State s)
         }
     }
     return countX == countO ? 1 : -1;
+}
+
+/*
+	- check valid moves
+*/
+bool checkLegalMove(State s, int i, int j){
+	renderGame(s);
+	if(i <= 0 or i > SIZE or j <= 0 or j > SIZE) return false; // out of bounds
+	if(s[i - 1][j - 1] != 0) return false; // already filled
+	return true; 
 }
 
 State play(State s, int row, int col, int player)
@@ -84,6 +132,49 @@ State play(State s, int row, int col, int player)
     return newState;
 }
 
+/*
+	- calculate state score
+		+ Input: state + current player
+		+ Output: state score (int)
+		+ Check current players
+		+ Score of the final state
+		+ Score of non-final state
+			+ Consider the scores of the states after making the next move. The score of the current state will be the highest/lowest score of the next states. (minimax algorithm)
+			+ Algorithm for taking all next chess positions
+			+ Score all states taken from aforementioned algorithm
+			+ Find out which position has the lowest score (with O) or the highest score (with X).
+*/
+
+
+/*
+	+ Score of the final state:
+		+ 1 if X wins, 0 if draw, -1 if O wins
+*/
+
+int getScoreFinalState(State s)
+{
+    // check rows & cols
+    for (int i = 0; i < SIZE; i++)
+    	if(abs(s[i][0] + s[i][1] + s[i][2]) == 3) return s[i][0];
+    	if(abs(s[0][i] + s[1][i] + s[2][i]) == 3) return s[0][i];
+    // check diagonals
+    if(abs(s[0][0] + s[1][1] + s[2][2]) == 3) return s[0][0];
+    if(abs(s[2][0] + s[1][1] + s[0][2]) == 3) return s[2][0];
+    return 0;
+}
+
+
+/*
+	+ Score of non-final state
+		+ Consider the scores of the states after making the next move. The score of the current state will be the highest/lowest score of the next states. (minimax algorithm)
+		+ Algorithm for taking all next states
+		+ Score all states taken from aforementioned algorithm
+		+ Find out which position has the lowest score (with O) or the highest score (with X).
+*/
+
+/*
+	+ Algorithm for taking all next states
+*/
 vector<State> getNextStates(State s, int player)
 {
     vector<State> states;
@@ -96,36 +187,6 @@ vector<State> getNextStates(State s, int player)
         }
     }
     return states;
-}
-
-bool isFinalState(State s)
-{
-    // check rows & cols
-    for (int i = 0; i < SIZE; i++)
-    	if(abs(s[i][0] + s[i][1] + s[i][2]) == 3) return true;
-    	if(abs(s[0][i] + s[1][i] + s[2][i]) == 3) return true;
-    // check diagonals
-    if(abs(s[0][0] + s[1][1] + s[2][2]) == 3) return true;
-   	if(abs(s[2][0] + s[1][1] + s[0][2]) == 3) return true;
-   	// check full
-   	for (int i = 0; i < SIZE; i++){
-   		for(int j = 0; j < SIZE; j++){
-   			if(s[i][j] == 0) return false;	
-		}	
-	}
-    return true;
-}
-
-int getScoreFinalState(State s)
-{
-    // check rows & cols
-    for (int i = 0; i < SIZE; i++)
-    	if(abs(s[i][0] + s[i][1] + s[i][2]) == 3) return s[i][0];
-    	if(abs(s[0][i] + s[1][i] + s[2][i]) == 3) return s[0][i];
-    // check diagonals
-    if(abs(s[0][0] + s[1][1] + s[2][2]) == 3) return s[0][0];
-    if(abs(s[2][0] + s[1][1] + s[0][2]) == 3) return s[2][0];
-    return 0;
 }
 
 pair<int, State> getScore(State s)
@@ -168,13 +229,6 @@ pair<int, int> getComputerPlay(State s)
         }
     }
     return make_pair(-1, -1);
-}
-
-bool checkLegalMove(State s, int i, int j){
-	renderGame(s);
-	if(i <= 0 or i > SIZE or j <= 0 or j > SIZE) return false; // out of bounds
-	if(s[i - 1][j - 1] != 0) return false; // already filled
-	return true; 
 }
 
 //2. user interface
