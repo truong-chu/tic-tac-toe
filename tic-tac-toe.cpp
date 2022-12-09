@@ -59,6 +59,32 @@ const int SIZE = 3;
 //Game over/Decide the outcome of the game
 
 /*
+- render game
+*/
+State play(State s, int row, int col, int player)
+{
+    State newState = State(3, vector<int>(3, 0));
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            newState[i][j] = s[i][j];
+        }
+    }
+    newState[row][col] = player;
+    return newState;
+}
+void renderGame(State state)
+{
+    cout << " -------------" << endl;
+    for (int i = 0; i < SIZE; i++) {
+        for (int j = 0; j < SIZE; j++) {
+            cout << " | " << characters[(state[i][j] + 3) % 3];
+        }
+        cout << " |" << endl << " -------------" << endl;
+    }
+}
+
+
+/*
 	- Check if the state is ended:
 		+ Input: state
 		+ Output: True/False
@@ -80,6 +106,7 @@ bool isFinalState(State s){
    			if(s[i][j] == 0) return false;	
 		}	
 	}
+	return true;
 }
 
 /*
@@ -120,18 +147,6 @@ bool checkLegalMove(State s, int i, int j){
 	return true; 
 }
 
-State play(State s, int row, int col, int player)
-{
-    State newState = State(3, vector<int>(3, 0));
-    for (int i = 0; i < SIZE; i++) {
-        for (int j = 0; j < SIZE; j++) {
-            newState[i][j] = s[i][j];
-        }
-    }
-    newState[row][col] = player;
-    return newState;
-}
-
 /*
 	- calculate state score
 		+ Input: state + current player
@@ -154,9 +169,10 @@ State play(State s, int row, int col, int player)
 int getScoreFinalState(State s)
 {
     // check rows & cols
-    for (int i = 0; i < SIZE; i++)
+    for (int i = 0; i < SIZE; i++){
     	if(abs(s[i][0] + s[i][1] + s[i][2]) == 3) return s[i][0];
     	if(abs(s[0][i] + s[1][i] + s[2][i]) == 3) return s[0][i];
+	}
     // check diagonals
     if(abs(s[0][0] + s[1][1] + s[2][2]) == 3) return s[0][0];
     if(abs(s[2][0] + s[1][1] + s[0][2]) == 3) return s[2][0];
@@ -201,7 +217,7 @@ pair<int, State> getScore(State s)
     for (State ns: states) {
         pair<int, State> p = getScore(ns);
         int score = p.first;
-        if (getNextPlayer == 1){
+        if (player == 1){
         	if (bestScore < score  || bestScore == -10){
 	            bestScore = score;
 	            bestState = ns;
@@ -212,7 +228,8 @@ pair<int, State> getScore(State s)
 	            bestState = ns;
 	        }
 		}
-        
+        //cout << score << "\n";
+        //renderGame(ns);
     }
     
     return make_pair(bestScore, bestState);
